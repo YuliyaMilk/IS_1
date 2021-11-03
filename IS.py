@@ -63,6 +63,18 @@ print('Максимальное = ', table.groupby('order_id')['quantity'].sum()
 print('Медианное = ', table.groupby('order_id')['quantity'].sum().median())
 
 #9. Определить статистику заказов стейков, а также статистику заказов прожарки.
+print('9. Определить статистику заказов стейков, а также статистику заказов прожарки: ')
+item_tot = table[table['item_name'].str.contains('Steak')].groupby(['item_name']).agg({"total_price": "mean", "quantity": "count", "order_id": "count"}).reset_index()
+item_tot = item_tot.rename(
+    columns={"total_price": "avg_price_paid", "order_id": "times_ordered"}
+)
+print(item_tot)
+
+item_tot = table['choice_description'].str.split(expand=True).stack().reset_index(level=1, drop=True).to_frame('roasting').merge(table, left_index=True, right_index=True)
+item_tot = item_tot[item_tot['roasting'].str.contains('Mild|Medium|Hot')]
+item_tot['roasting'] = item_tot.roasting.str.strip(',[]()')
+item_tot = item_tot.groupby(['roasting']).agg({"quantity": "count", "order_id": "count"}).reset_index()
+print(item_tot)
 
 #10. Добавить новый столбец цен на каждую позицию в заказе в рублях.
 print('10. Добавить новый столбец цен на каждую позицию в заказе в рублях: ')
@@ -72,8 +84,34 @@ table['price_rubles'] = table['item_price'].apply(fun1)
 print(table)
 
 #11. Сгруппировать заказы по входящим позициям в него. Отдельно сгруппировать по стейкам во всех видах прожарках.
+print('11. Сгруппировать заказы по входящим позициям в него. Отдельно сгруппировать по стейкам во всех видах прожарках: ')
+
+group_order = pd.DataFrame(
+    table.groupby(['item_name', 'order_id'])
+    .agg({"total_price": "mean", "quantity": "count"})
+)
+print(group_order)
+
+#item_tot = table[table['item_name'].str.contains('Steak')].groupby(['item_name', 'choice_description','order_id']).sum().reset_index()
+item_tot = table['choice_description'].str.split(expand=True).stack().reset_index(level=1, drop=True).to_frame('roasting').merge(table, left_index=True, right_index=True)
+item_tot = item_tot[item_tot['roasting'].str.contains('Mild|Medium|Hot')]
+item_tot['roasting'] = item_tot.roasting.str.strip(',[]()')
+item_tot = item_tot[item_tot['item_name'].str.contains('Steak')].groupby(['roasting', 'order_id', 'item_name', 'choice_description']).agg({"total_price": "mean", "quantity": "count"})
+print(item_tot)
+
+
 #12. Определить цену по каждой позиции в отдельности. 
+print('12. Определить цену по каждой позиции в отдельности: ')
 
+by_item = pd.DataFrame(
+    table.groupby("item_name")
+    .agg({"total_price": "mean", "quantity": "count"})
+    .reset_index()
+)
+by_item = by_item.rename(
+    columns={"total_price": "avg_price_paid", "quantity": "times_ordered"}
+)
 
+by_item["revenue"] = by_item["avg_price_paid"] * by_item["times_ordered"]
 
-
+print(by_item)
